@@ -6,7 +6,11 @@ require 'colorize'
 require 'notifier'
 require 'pry-byebug'
 
-$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), 'ergane'))
+$LOAD_PATH.unshift File.expand_path("#{__dir__}/ergane")
+
+require 'ergane/version'
+require 'ergane/command_definition'
+require 'ergane/tool'
 
 module Ergane
 
@@ -22,11 +26,32 @@ module Ergane
 
     def logger
       @logger ||= Logger.new($stdout).tap do |log|
-        log.progname = self.name
+        log.progname = @@active_tool&.title || self.name
         log.level = :warn
       end
     end
 
+    # def debug(string)
+    #   old_level = logger.level
+    #   logger.level = :debug if $debug
+    #   logger.debug(string)
+    # ensure
+    #   logger.level = old_level
+    # end
+
+    @@active_tool = nil
+
+    def active_tool
+      @@active_tool
+    end
+
+    def activate_tool(tool)
+      previous_tool = @@active_tool
+      @@active_tool = tool
+      yield if block_given?
+    ensure
+      @@active_tool = previous_tool
+    end
     # Show a list of available extensions to use
     def extensions
       Extension.library

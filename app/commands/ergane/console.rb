@@ -2,7 +2,7 @@ define :console do
 
   description "Jump into an interactive REPL console"
 
-  requirements :inherit do
+  requirements inherit: true do
     require 'colorize'
 
   end
@@ -12,7 +12,7 @@ define :console do
   end
 
   run do
-    Pry.config.prompt_name = "#{label} Console ".light_blue
+    Pry.config.prompt_name = "#{Process.argv0.split('/').last.capitalize} #{label} ".light_blue
     Pry.start
   end
 

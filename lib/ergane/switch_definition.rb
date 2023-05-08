@@ -31,7 +31,7 @@ module Ergane
       @run_block = block if block_given?
     end
 
-    def attach(option_parser, &block)
+    def attach(option_parser, command, &block)
       flag_arg = argument ? "=#{argument}" : ""
       args = []
       args << "-#{short}#{flag_arg}" if short
@@ -40,8 +40,8 @@ module Ergane
       args << description if description
 
       option_parser.on(*args, Proc.new { |value|
-        instance_exec(value, &block) if block_given?
-        instance_exec(value, &run_block) if run_block
+        command.instance_exec(value, &block) if block_given?
+        command.instance_exec(value, &run_block) if run_block
       })
     end
 
