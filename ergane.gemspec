@@ -38,6 +38,7 @@ Gem::Specification.new do |spec|
   ### Dev Dependencies ###################
   ########################################
   spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'ruby-prof'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'pry-byebug'
   spec.add_development_dependency 'rake'
