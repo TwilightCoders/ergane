@@ -1,6 +1,10 @@
 # Ergane
+**The patron goddess of craftsmen and artisans**
 
-# Requirements
+Library for creating lightweight, yet powerful CLI tools in Ruby.
+Emphasis and priority on load speed and flexibility.
+
+## Requirements
 Ruby 2.7+
 
 May work with older versions.
