@@ -52,11 +52,32 @@ module Ergane
     ensure
       @@active_tool = previous_tool
     end
+
+    def notify(message, title: nil, sound: nil, icon: nil, group: nil)
+      cmd = ['terminal-notifier']
+      cmd << "-group #{Process.pid}#{group}"
+      cmd << "-title #{active_tool.label}"
+      cmd << "-subtitle #{title}" if title
+      cmd << "-appIcon 'assets/athena md-light-shadow.png'" if icon
+      cmd << "-message '#{message}'"
+      cmd << "-activate 'com.apple.Terminal'" # if macos
+      cmd << "-sound #{sound}" if sound
+      Thread.new { `afplay /System/Library/Sounds/#{sound == true ? 'Blow' : sound}.aiff` } unless sound == false
+
+      `#{cmd.join(' ')}`
+      # Notifier.notify(title: title, message: message, image: 'assets/athena md-light-shadow.png')
+    end
+
     # Show a list of available extensions to use
     def extensions
       Extension.library
     end
   end
+end
+
+if ARGV.include?('--debug')
+  $debug = true
+  Ergane.logger.level = :debug
 end
 
 Dir[Ergane.root('lib', 'core_ext', "*.rb")].each do |path|
