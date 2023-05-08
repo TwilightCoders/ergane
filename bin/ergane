@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+
+require 'ergane'
+require 'ergane/tool'
+
+
+# TODO: Decide if "built-in" commands should go in ergane/lib or ergane/app
+# TODO: Determine a method for auto-loading commands in gems/utilities that utilize this gem
+tool = Ergane::Tool.new 'lib/ergane/commands/**/*.rb', 'app/**/commands/**/*.rb'
+tool.run
