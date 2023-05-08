@@ -2,8 +2,13 @@ define :console do
 
   description "Jump into an interactive REPL console"
 
-  options(inherit: false) do
+  requirements :inherit do
+    require 'colorize'
 
+  end
+
+  switches(inherit: false) do
+    # option(:help, description: "display help")
   end
 
   run do

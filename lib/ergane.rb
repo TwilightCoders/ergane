@@ -6,7 +6,13 @@ require 'colorize'
 require 'notifier'
 require 'pry-byebug'
 
+$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), 'ergane'))
+
 module Ergane
+
+  Help = Class.new(StandardError)
+  Interrupt = Class.new(StandardError)
+
   class << self
     attr_reader :logger
 
@@ -31,5 +37,3 @@ end
 Dir[Ergane.root('lib', 'core_ext', "*.rb")].each do |path|
   require path
 end
-
-ActiveSupport::Dependencies.autoload_paths << Ergane.root('lib/ergane')

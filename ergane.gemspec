@@ -1,5 +1,4 @@
-# require_relative 'lib/ergane/version'
-$LOAD_PATH.unshift File.dirname(__FILE__) + '/lib'
+require_relative 'lib/ergane/version'
 
 Gem::Specification.new do |spec|
   spec.name        = 'ergane'

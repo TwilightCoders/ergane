@@ -1,28 +1,35 @@
-require 'ergane/command'
+require 'ergane/command_definition'
 
 module Ergane
-  class Tool < Command
+  class Tool < CommandDefinition
     @@active_tool = nil
 
-    def initialize(*paths)
-      super()
+    def initialize(label, *paths)
+      super(label)
 
-      define self.class.name do
-        options do
-          option :debug, FalseClass, "Turn on debug mode"
-          # option verbose: FalseClass, short: :v, "Turn on verbose logging"
+
+      define do
+        switches do
+          switch :debug, default: false, kind: TrueClass, description: "Turn on debug mode"
+          switch :help, default: false, kind: TrueClass, description: "Display this help block" do
+            puts "raising Help"
+            raise Help
+          end
+          # switch verbose: FalseClass, short: :v, "Turn on verbose logging"
         end
 
         run do
           begin
             Process.setproctitle('ergane')
+            command, _other = self.parse_args(ARGV.dup)
 
-            # TODO: Parse all options
-            options[:debug] = ARGV.include?('--debug')
+            puts "Finished running #{label}"
           rescue Interrupt
             puts "\nOkay. Aborting."
           rescue RuntimeError
-
+            binding.pry
+          rescue Help
+            puts "Print Help!"
           ensure
             system "printf '\033]0;\007'"
           end
@@ -42,8 +49,15 @@ module Ergane
     end
 
     def self.define(label, chain: [], &block)
-      c = Command.define(label, chain: chain, &block)
-      @@active_tool.dig(*(chain + [label])) = c
+      c = CommandDefinition.define(label, chain: chain, &block)
+
+      parent_command = if chain.any?
+        @@active_tool.dig(*chain)
+      else
+        @@active_tool
+      end
+
+      parent_command[label] = c
     end
 
     def self.load_commands(path)
