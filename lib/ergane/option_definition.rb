@@ -21,20 +21,26 @@ module Ergane
       boolean? ? (default.nil? ? false : default) : default
     end
 
-    # Register this option with a stdlib OptionParser instance.
-    # When the option is encountered, its value is stored in +store+.
+    def long_flag
+      flag = "--#{name.to_s.tr('_', '-')}"
+      flag += "=VALUE" unless boolean?
+      flag
+    end
+
+    def short_flag
+      "-#{short}" if short
+    end
+
+    def signature
+      [("#{short_flag}," if short), long_flag].compact.join(" ")
+    end
+
     def attach(parser, store)
-      args = []
-      args << "-#{short}" if short
-      long_flag = "--#{name.to_s.tr('_', '-')}"
-      long_flag += "=VALUE" unless boolean?
-      args << long_flag
+      args = [short_flag, long_flag].compact
       args << type if type && !boolean?
       args << description if description
 
-      parser.on(*args) do |value|
-        store[name] = value
-      end
+      parser.on(*args) { |value| store[name] = value }
     end
   end
 end

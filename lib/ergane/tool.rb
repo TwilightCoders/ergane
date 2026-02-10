@@ -15,34 +15,19 @@ module Ergane
       end
 
       def tool_name(name = nil)
-        if name
-          self.command_name = name
-        else
-          command_name
-        end
+        name ? (self.command_name = name) : command_name
       end
 
       def version(ver = nil)
-        if ver
-          @version = ver
-        else
-          @version
-        end
+        ver ? (@version = ver) : @version
       end
 
       def start(argv = ARGV)
-        runner = Runner.new(self, argv.dup)
-        runner.execute
+        Runner.new(self, argv.dup).execute
       rescue Interrupt
         $stderr.puts "\nAborted."
         exit 130
-      rescue CommandNotFound => e
-        $stderr.puts e.message
-        exit 1
-      rescue MissingArgument => e
-        $stderr.puts e.message
-        exit 1
-      rescue AbstractCommand => e
+      rescue Ergane::Error => e
         $stderr.puts e.message
         exit 1
       end
@@ -60,6 +45,10 @@ module Ergane
 
       private
 
+      def command_base_for(_name)
+        command_class || self
+      end
+
       def create_command_base(tool_subclass)
         return if tool_subclass.command_class
 
@@ -75,26 +64,22 @@ module Ergane
 
         klass.define_singleton_method(:inherited) do |subclass|
           super(subclass)
+          cmd_name = subclass.command_name
+          if cmd_name && !subclass.abstract_class? && subclass.superclass.abstract_class?
+            subclass.instance_variable_set(:@_derived_name, cmd_name)
+            tool.subcommands[cmd_name] = subclass
+          end
         end
 
         klass.define_singleton_method(:inherited_command_name_set) do |subclass|
           cmd_name = subclass.command_name
-          tool.subcommands[cmd_name] = subclass if cmd_name && !subclass.abstract_class?
+          if cmd_name && !subclass.abstract_class? && subclass.superclass.abstract_class?
+            derived = subclass.instance_variable_get(:@_derived_name)
+            tool.subcommands.delete(derived) if derived && derived != cmd_name
+            tool.subcommands[cmd_name] = subclass
+          end
         end
       end
-    end
-
-    def self.command(name, aliases: [], &block)
-      base = command_class || self
-      klass = Class.new(base)
-      klass.command_name = name.to_sym
-      klass.aliases(*aliases) if aliases.any?
-
-      const_name = name.to_s.split("_").map(&:capitalize).join
-      const_set(const_name, klass) if const_name.match?(/\A[A-Z]/)
-
-      Ergane::DSL::BlockDSL.new(klass).instance_eval(&block) if block
-      klass
     end
   end
 end

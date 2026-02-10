@@ -10,28 +10,29 @@ module Ergane
     end
 
     def format
-      lines = []
-      lines << description_section if command_class.description.present?
-      lines << version_section if command_class.respond_to?(:version) && command_class.version
-      lines << usage_section
-      lines << subcommands_section if command_class.subcommands.any?
-      lines << options_section if command_class.option_definitions.any?
-      lines << arguments_section if command_class.argument_definitions.any?
-      lines.compact.join("\n\n") + "\n"
+      [
+        description_section,
+        version_section,
+        usage_section,
+        subcommands_section,
+        options_section,
+        arguments_section
+      ].compact.join("\n\n") + "\n"
     end
 
     private
 
     def description_section
-      command_class.description
+      desc = command_class.description
+      desc if desc.present?
     end
 
     def version_section
-      "Version: #{command_class.version.to_s.light_blue}"
+      ver = command_class.respond_to?(:version) && command_class.version
+      "Version: #{ver.to_s.light_blue}" if ver
     end
 
     def usage_section
-      parts = ["Usage:".light_cyan]
       path = command_path.any? ? command_path.join(" ") : command_class.command_name.to_s
       usage = path.light_red
       usage += " [options]".light_cyan if command_class.option_definitions.any?
@@ -40,13 +41,12 @@ module Ergane
         label = arg.required ? "<#{arg.name}>" : "[#{arg.name}]"
         usage += " #{label}".light_yellow
       end
-      parts << usage
-      parts.join(" ")
+      "Usage:".light_cyan + " " + usage
     end
 
     def subcommands_section
       subs = command_class.subcommands
-      return nil if subs.empty?
+      return if subs.empty?
 
       max_width = subs.keys.map { |k| k.to_s.length }.max
       Util::Formatting.reset_colors!
@@ -68,13 +68,13 @@ module Ergane
 
     def options_section
       opts = command_class.option_definitions
-      return nil if opts.empty?
+      return if opts.empty?
 
-      max_width = opts.values.map { |o| option_signature(o).length }.max
+      max_width = opts.values.map { |o| o.signature.length }.max
 
       lines = ["Options:".light_cyan]
       opts.each_value do |opt|
-        sig = option_signature(opt).ljust(max_width + 2)
+        sig = opt.signature.ljust(max_width + 2)
         desc = opt.description || ""
         default_note = opt.default_value ? " (default: #{opt.default_value})".light_black : ""
         lines << "  #{sig.light_green} #{desc}#{default_note}"
@@ -84,7 +84,7 @@ module Ergane
 
     def arguments_section
       args = command_class.argument_definitions
-      return nil if args.empty?
+      return if args.empty?
 
       max_width = args.map { |a| a.name.to_s.length }.max
 
@@ -96,15 +96,6 @@ module Ergane
         lines << "  #{label.light_yellow} #{desc}#{req}"
       end
       lines.join("\n")
-    end
-
-    def option_signature(opt)
-      parts = []
-      parts << "-#{opt.short}," if opt.short
-      long = "--#{opt.name.to_s.tr('_', '-')}"
-      long += "=VALUE" unless opt.boolean?
-      parts << long
-      parts.join(" ")
     end
   end
 end

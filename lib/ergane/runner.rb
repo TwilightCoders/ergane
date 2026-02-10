@@ -9,7 +9,6 @@ module Ergane
       @argv = argv.dup
     end
 
-    # Resolve the ARGV to a command class, instantiate, and run.
     def execute
       command_class, remaining, path = resolve(root, argv)
 
@@ -24,8 +23,7 @@ module Ergane
       end
 
       instance = command_class.new(remaining)
-      args = instance.args
-      instance.run(*args)
+      instance.run(*instance.args)
     end
 
     private
@@ -38,24 +36,25 @@ module Ergane
       args.include?("--version") || args.include?("-V")
     end
 
-    # Walk the command tree, consuming subcommand tokens from argv.
-    # Returns [CommandClass, remaining_argv, command_path].
     def resolve(command_class, args, path = [])
       path << (command_class.command_name || command_class.name || "command").to_s
       return [command_class, args, path] if args.empty?
 
       token = args.first
-
-      # Don't treat flags as subcommand names
       return [command_class, args, path] if token.start_with?("-")
 
-      sub = command_class.subcommands[token.to_sym]
+      sub = find_subcommand(command_class, token.to_sym)
       if sub
         args.shift
         resolve(sub, args, path)
       else
         [command_class, args, path]
       end
+    end
+
+    def find_subcommand(command_class, token)
+      command_class.subcommands[token] ||
+        command_class.subcommands.each_value.find { |cmd| cmd.terms.include?(token) }
     end
   end
 end

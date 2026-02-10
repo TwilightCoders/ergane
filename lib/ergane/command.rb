@@ -45,13 +45,9 @@ module Ergane
 
       def derive_command_name
         return nil if self == Command || abstract_class?
-        base = name&.split("::")&.last
+        base = name&.demodulize
         return nil unless base
-        base.gsub(/Command$/, "")
-            .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-            .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-            .downcase
-            .to_sym
+        base.sub(/Command$/, "").underscore.to_sym
       end
 
       def register_subcommand(subclass)

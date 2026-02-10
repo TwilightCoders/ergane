@@ -3,25 +3,27 @@
 module Ergane
   module Util
     module Formatting
+      extend self
+
       COLORS = %i[light_red light_yellow light_green light_blue light_cyan light_magenta].freeze
 
-      def self.color_cycle
+      def color_cycle
         @color_cycle ||= COLORS.cycle
       end
 
-      def self.next_color
+      def next_color
         color_cycle.next
       end
 
-      def self.reset_colors!
+      def reset_colors!
         @color_cycle = COLORS.cycle
       end
 
-      def self.rainbow(string, delimiter = " ")
+      def rainbow(string, delimiter = " ")
         string.split(delimiter).map { |word| word.to_s.send(next_color) }.join(delimiter)
       end
 
-      def self.colorize_list(items)
+      def colorize_list(items)
         items.map { |item| item.to_s.send(next_color) }
       end
     end
