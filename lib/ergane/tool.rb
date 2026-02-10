@@ -1,116 +1,100 @@
+# frozen_string_literal: true
+
 module Ergane
-  class Tool < CommandDefinition
-    attr_reader :title #capitalized :label
-    attr_reader :version
+  class Tool < Command
+    self.abstract_class = true
 
-    def initialize(label, *paths)
-      super(label)
-
-      @title = label.capitalize
-      @version = VERSION
-
-      # Dogfood-ing
-      define do
-        description "Basic CLI Tool"
-        switches do
-          switch :help, default: false, kind: TrueClass, description: "Display this help block" do
-            raise Help
-          end
-          switch :version, default: false, kind: TrueClass, description: "Display the version" do
-            # TODO: Push ARGV into a variable at the command level that can be manipulated by flags/switches
-            # NOTE: This would allow a --version to morph into a version command and we could push all this logic to that.
-            # Additional logic for --version would be -1 or --short etc.
-            puts "#{@title} Version: #{Ergane::VERSION}"
-            exit
-          end
-          # switch verbose: FalseClass, short: :v, "Turn on verbose logging"
-        end
-
-        run do
-          begin
-            command, args = self, []
-            Process.setproctitle(label.to_s)
-            command, args = self.parse_args(ARGV.dup)
-
-            command.run(*args)
-            puts "Finished running #{label}"
-          rescue Interrupt
-            puts "\nOkay. Aborting."
-          rescue RuntimeError
-            puts "RuntimeError"
-            binding.pry
-          rescue Help
-            puts help(command, args)
-          ensure
-            system "printf '\033]0;\007'"
-          end
-        end
-      end
-
-      Pry.config.prompt_name = "#{title} ".light_blue
-
-      load_commands(paths)
-    end
-
-    def help(command, args=[])
-      missing_args = command.arguments.product([false]).to_h.merge(args.product([true]).to_h).map do |arg, is_missing|
-        a = arg.to_s.light_black.underline.tap do |b|
-          b.blink if is_missing
-        end
-      end.join(' ')
-
-      command.switch_parser.banner = [].tap do |text|
-        text << "About: #{description}"
-        text << "Version:  #{version.to_s.light_blue}"
-        text << "Usage: #{([label] + chain).join(' ').light_red} #{'[options]'.light_cyan} "
-        if commands.any?
-          text.last << "[subcommand]".light_black.underline
-          text << ("    ┌" + ("─" * (text.last.uncolorize.length - 12)) + "┘").light_black
-          commands.each do |key, command|
-            # text << "    ├─┐".light_black + " #{(klass.terms.join(', ')).ljust(24, ' ')} ".send(Athena::Util.next_color) + klass.description.light_black
-            text << "    ├─┐".light_black + " #{key.to_s.ljust(24, ' ')} " + command.description.light_black
-          end
-          text << ("    └" + "─" * 64).light_black
+    class << self
+      def command_class(klass = nil)
+        if klass
+          @command_class = klass
+          wire_command_class(klass)
         else
-          # text.last << command.arguments(missing_args.keys)
-        end
-        # text << list_examples if examples.any?
-        text << "Options:".light_cyan
-      end.join("\n")
-      switch_parser
-    end
-
-    def self.define(label, chain: [], &block)
-      c = CommandDefinition.define(label, chain: chain, &block)
-
-      parent_command = if chain.any?
-        Ergane.active_tool.dig(*chain)
-      else
-        Ergane.active_tool
-      end
-
-      parent_command[label] = c
-    end
-
-    def load_commands(paths)
-      activate_tool do
-        Ergane.logger.debug "Loading paths:"
-        Array.wrap(paths).each do |path|
-          Ergane.logger.debug "  - #{path}"
-          Dir[path].each do |path|
-            file = path.split('/').last
-            Ergane.logger.debug "  - loading #{path.split('/').last(4).join('/')}"
-            instance_eval(File.read(path), file)
-          end
+          @command_class
         end
       end
+
+      def tool_name(name = nil)
+        if name
+          self.command_name = name
+        else
+          command_name
+        end
+      end
+
+      def version(ver = nil)
+        if ver
+          @version = ver
+        else
+          @version
+        end
+      end
+
+      def start(argv = ARGV)
+        runner = Runner.new(self, argv.dup)
+        runner.execute
+      rescue Interrupt
+        $stderr.puts "\nAborted."
+        exit 130
+      rescue CommandNotFound => e
+        $stderr.puts e.message
+        exit 1
+      rescue MissingArgument => e
+        $stderr.puts e.message
+        exit 1
+      rescue AbstractCommand => e
+        $stderr.puts e.message
+        exit 1
+      end
+
+      def load_commands(*patterns)
+        patterns.flatten.each do |pattern|
+          Dir[pattern].sort.each { |file| require file }
+        end
+      end
+
+      def inherited(subclass)
+        super
+        create_command_base(subclass) if self == Tool
+      end
+
+      private
+
+      def create_command_base(tool_subclass)
+        return if tool_subclass.command_class
+
+        base = Class.new(Ergane::Command)
+        base.abstract_class = true
+        tool_subclass.const_set(:Command, base)
+        tool_subclass.command_class(base)
+      end
+
+      def wire_command_class(klass)
+        tool = self
+        klass.define_singleton_method(:tool) { tool }
+
+        klass.define_singleton_method(:inherited) do |subclass|
+          super(subclass)
+        end
+
+        klass.define_singleton_method(:inherited_command_name_set) do |subclass|
+          cmd_name = subclass.command_name
+          tool.subcommands[cmd_name] = subclass if cmd_name && !subclass.abstract_class?
+        end
+      end
     end
 
-    private
+    def self.command(name, aliases: [], &block)
+      base = command_class || self
+      klass = Class.new(base)
+      klass.command_name = name.to_sym
+      klass.aliases(*aliases) if aliases.any?
 
-    def activate_tool(&block)
-      Ergane.activate_tool(self, &block)
+      const_name = name.to_s.split("_").map(&:capitalize).join
+      const_set(const_name, klass) if const_name.match?(/\A[A-Z]/)
+
+      Ergane::DSL::BlockDSL.new(klass).instance_eval(&block) if block
+      klass
     end
-
   end
 end
