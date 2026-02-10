@@ -1,3 +1,5 @@
+<img src="https://github.com/TwilightCoders/ergane/blob/main/media/ergane.png?raw=true" alt="Athena Ergane" width="400" style="float: right"/>
+
 # Ergane
 
 [![Version](https://img.shields.io/gem/v/ergane.svg)](https://rubygems.org/gems/ergane)
