@@ -2,15 +2,16 @@
 
 module Ergane
   class OptionDefinition
-    attr_reader :name, :type, :short, :description, :default, :required
+    attr_reader :name, :type, :short, :description, :default, :required, :optional
 
-    def initialize(name, type = nil, short: nil, description: nil, default: nil, required: false)
+    def initialize(name, type = nil, short: nil, description: nil, default: nil, required: false, optional: false)
       @name = name.to_sym
       @type = type
       @short = short&.to_s
       @description = description
       @default = default
       @required = required
+      @optional = optional
     end
 
     def boolean?
@@ -23,7 +24,9 @@ module Ergane
 
     def long_flag
       flag = "--#{name.to_s.tr('_', '-')}"
-      flag += "=VALUE" unless boolean?
+      unless boolean?
+        flag += optional ? "=[VALUE]" : "=VALUE"
+      end
       flag
     end
 

@@ -11,10 +11,10 @@ module Ergane
         names.any? ? (@aliases = names.flatten.map(&:to_sym)) : (@aliases || [])
       end
 
-      def option(name, type = nil, short: nil, description: nil, default: nil, required: false)
+      def option(name, type = nil, short: nil, description: nil, default: nil, required: false, optional: false)
         option_definitions[name.to_sym] = OptionDefinition.new(
           name, type, short: short, description: description,
-          default: default, required: required
+          default: default, required: required, optional: optional
         )
       end
 
