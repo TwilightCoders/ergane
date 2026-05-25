@@ -67,7 +67,7 @@ module Ergane
 
     def initialize(argv = [])
       @options = self.class.build_default_options
-      @argv = parse_options(argv.dup)
+      @argv = process_arguments(parse_options(argv.dup))
     end
 
     def args
@@ -80,6 +80,43 @@ module Ergane
       else
         raise AbstractCommand, "#{self.class.name}#run is not implemented"
       end
+    end
+
+    private
+
+    # Validates and coerces positional args against the command's argument
+    # definitions: missing required args raise, absent optional args take
+    # their default, and present args are coerced by type. Extra positionals
+    # beyond the declared arguments pass through untouched (e.g. for run(*)).
+    def process_arguments(argv)
+      definitions = self.class.argument_definitions
+      return argv if definitions.empty?
+
+      declared = definitions.each_with_index.map do |defn, i|
+        if i < argv.length
+          coerce_argument(argv[i], defn)
+        elsif defn.required
+          raise MissingArgument, "Missing required argument: <#{defn.name}>"
+        else
+          defn.default
+        end
+      end
+      declared + argv.drop(definitions.length)
+    end
+
+    def coerce_argument(value, defn)
+      type = defn.type
+      return value if type.nil? || type == String
+
+      if type == Integer
+        Integer(value)
+      elsif type == Float
+        Float(value)
+      else
+        value
+      end
+    rescue ArgumentError
+      raise InvalidOption, "Invalid value for <#{defn.name}>: #{value.inspect} (expected #{type})"
     end
   end
 end

@@ -179,4 +179,63 @@ RSpec.describe Ergane::Command do
       expect(instance.abbreviate_path("#{File.expand_path('~')}/code")).to eq("~/code")
     end
   end
+
+  describe "positional arguments" do
+    it "passes args through when no arguments are declared" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :echo
+        define_method(:run) { |*a| a }
+      end
+      expect(klass.new(["a", "b"]).args).to eq(["a", "b"])
+    end
+
+    it "raises MissingArgument when a required argument is absent" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :greet
+        argument :name
+      end
+      expect { klass.new([]) }.to raise_error(Ergane::MissingArgument, /<name>/)
+    end
+
+    it "accepts a present required argument" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :greet
+        argument :name
+      end
+      expect(klass.new(["Dale"]).args).to eq(["Dale"])
+    end
+
+    it "applies the default for an absent optional argument" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :greet
+        argument :name, required: false, default: "world"
+      end
+      expect(klass.new([]).args).to eq(["world"])
+    end
+
+    it "coerces an Integer argument" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :wait
+        argument :seconds, Integer
+      end
+      expect(klass.new(["5"]).args).to eq([5])
+    end
+
+    it "raises InvalidOption for an uncoercible value" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :wait
+        argument :seconds, Integer
+      end
+      expect { klass.new(["abc"]) }.to raise_error(Ergane::InvalidOption, /seconds/)
+    end
+
+    it "passes extra positionals through after declared arguments" do
+      klass = Class.new(Ergane::Command) do
+        self.command_name = :cp
+        argument :src
+        argument :dest
+      end
+      expect(klass.new(["a", "b", "c", "d"]).args).to eq(["a", "b", "c", "d"])
+    end
+  end
 end
