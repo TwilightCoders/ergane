@@ -49,21 +49,18 @@ module Ergane
       return if subs.empty?
 
       max_width = subs.keys.map { |k| k.to_s.length }.max
-      Util::Formatting.reset_colors!
+      colors = Util::Formatting::COLORS.cycle
+      title = "Subcommands"
 
-      lines = []
-      lines << "Subcommands:".light_cyan
-      header_len = lines.last.uncolorize.length
-      lines << ("  \u250C" + ("\u2500" * (header_len - 2)) + "\u2518").light_black
-
+      lines = [("  \u250C" + ("\u2500" * (title.length - 1)) + "\u2518").light_black]
       subs.each do |name, sub_class|
         label = name.to_s.ljust(max_width + 2)
         desc = sub_class.description.present? ? sub_class.description.light_black : ""
-        lines << "  \u251C\u2500\u2510".light_black + " #{label.send(Util::Formatting.next_color)} #{desc}"
+        lines << "  \u251C\u2500\u2510".light_black + " #{label.send(colors.next)} #{desc}"
       end
-
       lines << ("  \u2514" + "\u2500" * 40).light_black
-      lines.join("\n")
+
+      section(title, lines)
     end
 
     def options_section
@@ -72,14 +69,13 @@ module Ergane
 
       max_width = opts.values.map { |o| o.signature.length }.max
 
-      lines = ["Options:".light_cyan]
-      opts.each_value do |opt|
+      lines = opts.each_value.map do |opt|
         sig = opt.signature.ljust(max_width + 2)
         desc = opt.description || ""
         default_note = opt.default_value ? " (default: #{opt.default_value})".light_black : ""
-        lines << "  #{sig.light_green} #{desc}#{default_note}"
+        "  #{sig.light_green} #{desc}#{default_note}"
       end
-      lines.join("\n")
+      section("Options", lines)
     end
 
     def arguments_section
@@ -88,14 +84,21 @@ module Ergane
 
       max_width = args.map { |a| a.name.to_s.length }.max
 
-      lines = ["Arguments:".light_cyan]
-      args.each do |arg|
+      lines = args.map do |arg|
         label = arg.name.to_s.ljust(max_width + 2)
         desc = arg.description || ""
         req = arg.required ? " (required)".light_red : " (optional)".light_black
-        lines << "  #{label.light_yellow} #{desc}#{req}"
+        "  #{label.light_yellow} #{desc}#{req}"
       end
-      lines.join("\n")
+      section("Arguments", lines)
+    end
+
+    # Renders a titled block: a cyan "Title:" header followed by its lines,
+    # or nil when there are no lines (so #format compacts it away).
+    def section(title, lines)
+      return if lines.empty?
+
+      ["#{title}:".light_cyan, *lines].join("\n")
     end
   end
 end
