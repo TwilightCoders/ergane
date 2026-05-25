@@ -10,11 +10,9 @@ module Ergane
       module ClassMethods
         def abstract_class=(value)
           @abstract_class = value
-          # Unregister from parent's subcommands when marked abstract
-          if value && respond_to?(:command_name) && self < Ergane::Command
-            parent = superclass
-            parent.subcommands.delete(command_name) if parent.respond_to?(:subcommands)
-          end
+          # Re-run registration so the command leaves (or rejoins) its
+          # registry to match its new abstract state.
+          register! if self < Ergane::Command && respond_to?(:register!, true)
         end
 
         def abstract_class?

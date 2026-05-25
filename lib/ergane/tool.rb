@@ -58,27 +58,12 @@ module Ergane
         tool_subclass.command_class(base)
       end
 
+      # Gives the tool's command base (and everything below it) a reference
+      # back to the tool, so Command#registration_target can route
+      # subcommands to the tool's registry.
       def wire_command_class(klass)
         tool = self
         klass.define_singleton_method(:tool) { tool }
-
-        klass.define_singleton_method(:inherited) do |subclass|
-          super(subclass)
-          cmd_name = subclass.command_name
-          if cmd_name && !subclass.abstract_class? && subclass.superclass.abstract_class?
-            subclass.instance_variable_set(:@_derived_name, cmd_name)
-            tool.subcommands[cmd_name] = subclass
-          end
-        end
-
-        klass.define_singleton_method(:inherited_command_name_set) do |subclass|
-          cmd_name = subclass.command_name
-          if cmd_name && !subclass.abstract_class? && subclass.superclass.abstract_class?
-            derived = subclass.instance_variable_get(:@_derived_name)
-            tool.subcommands.delete(derived) if derived && derived != cmd_name
-            tool.subcommands[cmd_name] = subclass
-          end
-        end
       end
     end
   end

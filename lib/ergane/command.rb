@@ -11,14 +11,7 @@ module Ergane
     class << self
       def command_name=(name)
         @command_name = name&.to_sym
-        return unless @command_name
-
-        parent = superclass
-        if parent.respond_to?(:tool) && parent.abstract_class?
-          parent.inherited_command_name_set(self)
-        else
-          register_subcommand(self)
-        end
+        register!
       end
 
       def command_name
@@ -38,7 +31,7 @@ module Ergane
         subclass.instance_variable_set(:@option_definitions, option_definitions.dup)
         subclass.instance_variable_set(:@argument_definitions, argument_definitions.dup)
         subclass.instance_variable_set(:@subcommands, {})
-        register_subcommand(subclass)
+        subclass.send(:register!)
       end
 
       private
@@ -50,12 +43,36 @@ module Ergane
         base.sub(/Command$/, "").underscore.to_sym
       end
 
-      def register_subcommand(subclass)
-        parent = subclass.superclass
-        return if parent == Command || parent.abstract_class?
-        cmd_name = subclass.command_name
-        return unless cmd_name
-        parent.subcommands[cmd_name] = subclass
+      # The registry this command belongs in: a tool's abstract command base
+      # registers under the tool itself; a concrete parent registers under
+      # that parent. A command rooted directly on Command, or under an
+      # abstract non-tool parent, registers nowhere.
+      def registration_target
+        parent = superclass
+        if parent.respond_to?(:tool) && parent.abstract_class?
+          parent.tool
+        elsif parent != Command && !parent.abstract_class?
+          parent
+        end
+      end
+
+      # Registers (or re-registers) this command in its target registry under
+      # its current command_name, removing any prior registration when the
+      # name changes or the command becomes abstract. Idempotent — safe to
+      # call from both .inherited and command_name=.
+      def register!
+        target = registration_target
+        return unless target
+
+        name = abstract_class? ? nil : command_name
+
+        target.subcommands.delete(@registered_as) if @registered_as && @registered_as != name
+        if name
+          target.subcommands[name] = self
+          @registered_as = name
+        else
+          @registered_as = nil
+        end
       end
     end
 
