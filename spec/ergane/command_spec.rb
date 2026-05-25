@@ -173,5 +173,10 @@ RSpec.describe Ergane::Command do
       instance = cmd_class.new(["-n", "Dale"])
       expect(instance.run).to eq("Hello Dale!")
     end
+
+    it "abbreviates paths via the shared registry" do
+      instance = cmd_class.new([])
+      expect(instance.abbreviate_path("#{File.expand_path('~')}/code")).to eq("~/code")
+    end
   end
 end

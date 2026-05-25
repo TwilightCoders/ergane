@@ -61,6 +61,10 @@ module Ergane
 
     attr_reader :options
 
+    def abbreviate_path(path)
+      Ergane.paths.abbreviate(path)
+    end
+
     def initialize(argv = [])
       @options = self.class.build_default_options
       @argv = parse_options(argv.dup)

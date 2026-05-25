@@ -30,4 +30,11 @@ module Ergane
   def self.root
     @root ||= Pathname.new(File.expand_path("../..", __FILE__))
   end
+
+  # The shared registry of path-prefix abbreviations used by
+  # Command#abbreviate_path. Seeded with $HOME → "~"; consumers may
+  # register additional substitutions.
+  def self.paths
+    @paths ||= PathRegistry.new.register("~", "~")
+  end
 end
