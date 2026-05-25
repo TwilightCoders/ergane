@@ -47,6 +47,10 @@ module Ergane
       if sub
         args.shift
         resolve(sub, args, path)
+      elsif command_class.subcommands.any?
+        # The current command is a group, so an unmatched token is a bad
+        # subcommand — not a positional arg for a leaf command.
+        raise CommandNotFound.new(token, available: command_class.subcommands.keys)
       else
         [command_class, args, path]
       end

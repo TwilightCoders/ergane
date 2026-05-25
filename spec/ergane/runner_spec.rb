@@ -82,9 +82,19 @@ RSpec.describe Ergane::Runner do
   end
 
   describe "unknown tokens" do
-    it "treats unknown tokens as positional args for the current command" do
+    it "treats unknown tokens as positional args for a leaf command" do
       result = Ergane::Runner.new(root, ["deploy", "unknown_thing"]).execute
       expect(result[:args]).to eq(["unknown_thing"])
+    end
+
+    it "raises CommandNotFound for a bad subcommand on a command group" do
+      expect { Ergane::Runner.new(root, ["bogus"]).execute }
+        .to raise_error(Ergane::CommandNotFound, /Unknown command: 'bogus'/)
+    end
+
+    it "suggests a close match in the error" do
+      expect { Ergane::Runner.new(root, ["statuss"]).execute }
+        .to raise_error(Ergane::CommandNotFound, /Did you mean 'status'\?/)
     end
   end
 end
