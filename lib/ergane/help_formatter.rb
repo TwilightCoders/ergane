@@ -37,8 +37,8 @@ module Ergane
       usage = path.light_red
       usage += " [options]".light_cyan if command_class.option_definitions.any?
       usage += " [subcommand]".light_black.underline if command_class.subcommands.any?
-      command_class.argument_definitions.each do |arg|
-        label = arg.required ? "<#{arg.name}>" : "[#{arg.name}]"
+      command_class.argument_definitions.each_with_index do |arg, i|
+        label = command_class.argument_required?(i) ? "<#{arg.name}>" : "[#{arg.name}]"
         usage += " #{label}".light_yellow
       end
       "Usage:".light_cyan + " " + usage
@@ -84,10 +84,10 @@ module Ergane
 
       max_width = args.map { |a| a.name.to_s.length }.max
 
-      lines = args.map do |arg|
+      lines = args.each_with_index.map do |arg, i|
         label = arg.name.to_s.ljust(max_width + 2)
         desc = arg.description || ""
-        req = arg.required ? " (required)".light_red : " (optional)".light_black
+        req = command_class.argument_required?(i) ? " (required)".light_red : " (optional)".light_black
         "  #{label.light_yellow} #{desc}#{req}"
       end
       section("Arguments", lines)

@@ -189,18 +189,60 @@ RSpec.describe Ergane::Command do
       expect(klass.new(["a", "b"]).args).to eq(["a", "b"])
     end
 
-    it "raises MissingArgument when a required argument is absent" do
-      klass = Class.new(Ergane::Command) do
-        self.command_name = :greet
-        argument :name
+    describe "required-ness derived from the run signature" do
+      it "raises MissingArgument when a required run param is absent" do
+        klass = Class.new(Ergane::Command) do
+          self.command_name = :greet
+          argument :name
+          def run(name) = name
+        end
+        expect { klass.new([]) }.to raise_error(Ergane::MissingArgument, /<name>/)
       end
-      expect { klass.new([]) }.to raise_error(Ergane::MissingArgument, /<name>/)
+
+      it "treats an optional run param as optional" do
+        klass = Class.new(Ergane::Command) do
+          self.command_name = :greet
+          argument :name
+          def run(name = nil) = name
+        end
+        expect { klass.new([]) }.not_to raise_error
+      end
+
+      it "treats a splat run as all-optional" do
+        klass = Class.new(Ergane::Command) do
+          self.command_name = :greet
+          argument :name
+          def run(*a) = a
+        end
+        expect { klass.new([]) }.not_to raise_error
+      end
+    end
+
+    describe "explicit required: overrides the signature" do
+      it "required: false relaxes a required run param" do
+        klass = Class.new(Ergane::Command) do
+          self.command_name = :greet
+          argument :name, required: false
+          def run(name) = name
+        end
+        expect { klass.new([]) }.not_to raise_error
+      end
+
+      it "required: true enforces despite a splat run" do
+        klass = Class.new(Ergane::Command) do
+          self.command_name = :greet
+          argument :name, required: true
+          def run(*a) = a
+        end
+        expect { klass.new([]) }.to raise_error(Ergane::MissingArgument)
+      end
     end
 
     it "accepts a present required argument" do
       klass = Class.new(Ergane::Command) do
         self.command_name = :greet
         argument :name
+        def run(name) = name
       end
       expect(klass.new(["Dale"]).args).to eq(["Dale"])
     end
@@ -208,7 +250,8 @@ RSpec.describe Ergane::Command do
     it "applies the default for an absent optional argument" do
       klass = Class.new(Ergane::Command) do
         self.command_name = :greet
-        argument :name, required: false, default: "world"
+        argument :name, default: "world"
+        def run(name = nil) = name
       end
       expect(klass.new([]).args).to eq(["world"])
     end
@@ -217,6 +260,7 @@ RSpec.describe Ergane::Command do
       klass = Class.new(Ergane::Command) do
         self.command_name = :wait
         argument :seconds, Integer
+        def run(seconds) = seconds
       end
       expect(klass.new(["5"]).args).to eq([5])
     end
@@ -225,6 +269,7 @@ RSpec.describe Ergane::Command do
       klass = Class.new(Ergane::Command) do
         self.command_name = :wait
         argument :seconds, Integer
+        def run(seconds) = seconds
       end
       expect { klass.new(["abc"]) }.to raise_error(Ergane::InvalidOption, /seconds/)
     end
@@ -234,6 +279,7 @@ RSpec.describe Ergane::Command do
         self.command_name = :cp
         argument :src
         argument :dest
+        def run(src, dest, *rest) = [src, dest, *rest]
       end
       expect(klass.new(["a", "b", "c", "d"]).args).to eq(["a", "b", "c", "d"])
     end

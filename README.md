@@ -174,6 +174,18 @@ run do |*args|
 end
 ```
 
+### Positional Arguments
+
+An argument's required-ness is derived from the command's `run` signature — a required parameter makes it required, while an optional parameter or a splat makes it optional:
+
+```ruby
+def run(source, destination = nil, *rest)
+  # source is required; destination is optional
+end
+```
+
+Pass `required:` on the `argument` to override the signature, `type:` to coerce the value (a non-`String` type is converted, raising on failure), and `default:` for an absent optional argument. A missing required argument raises `Ergane::MissingArgument`.
+
 ## Loading Commands from Files
 
 For larger CLIs, organize commands in separate files:

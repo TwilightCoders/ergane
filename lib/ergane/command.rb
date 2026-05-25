@@ -26,6 +26,20 @@ module Ergane
         @subcommands ||= {}
       end
 
+      # Effective required-ness of the positional argument at +index+. An
+      # explicit DSL `required:` (true/false) wins; otherwise it's derived from
+      # the run method's matching positional parameter: a required parameter
+      # (`run(name)`) means required, while an optional one (`run(name = nil)`)
+      # or a splat (`run(*)`) means optional.
+      def argument_required?(index)
+        defn = argument_definitions[index]
+        return false unless defn
+        return defn.required unless defn.required.nil?
+
+        param = run_positional_parameters[index]
+        param ? param.first == :req : false
+      end
+
       def inherited(subclass)
         super
         subclass.instance_variable_set(:@option_definitions, option_definitions.dup)
@@ -35,6 +49,12 @@ module Ergane
       end
 
       private
+
+      # The run method's positional parameters (required/optional), in order,
+      # which line up with declared arguments. Excludes splat/keyword params.
+      def run_positional_parameters
+        instance_method(:run).parameters.select { |kind, _| kind == :req || kind == :opt }
+      end
 
       def derive_command_name
         return nil if self == Command || abstract_class?
@@ -112,7 +132,7 @@ module Ergane
       declared = definitions.each_with_index.map do |defn, i|
         if i < argv.length
           coerce_argument(argv[i], defn)
-        elsif defn.required
+        elsif self.class.argument_required?(i)
           raise MissingArgument, "Missing required argument: <#{defn.name}>"
         else
           defn.default

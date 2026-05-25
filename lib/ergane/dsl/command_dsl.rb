@@ -22,7 +22,7 @@ module Ergane
         option(name, nil, short: short, description: description, default: false)
       end
 
-      def argument(name, type = String, description: nil, required: true, default: nil)
+      def argument(name, type = String, description: nil, required: nil, default: nil)
         argument_definitions << ArgumentDefinition.new(
           name, type, description: description, required: required, default: default
         )

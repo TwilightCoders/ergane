@@ -6,7 +6,7 @@
 
 ### Changed
 - **Unknown subcommands on a command group now raise `CommandNotFound`** (with a did-you-mean suggestion) and exit non-zero, instead of silently printing help. Scoped to command groups — leaf commands still treat unmatched tokens as positional arguments.
-- **Positional `argument` declarations are now enforced.** A missing `required:` argument raises `MissingArgument`; an absent optional argument takes its `default:`; values are coerced to the declared `type:` (`String` is identity, `Integer`/`Float` via Kernel conversion raising `InvalidOption` on bad input). Previously these keywords affected only help text.
+- **Positional `argument` declarations are now enforced.** Required-ness is derived from the command's `run` signature — a required parameter (`run(name)`) makes the argument required, while an optional one (`run(name = nil)`) or a splat (`run(*)`) makes it optional; an explicit `required:` on the `argument` overrides the signature. A missing required argument raises `MissingArgument`; an absent optional argument takes its `default:`; values are coerced to the declared `type:` (`String` is identity, `Integer`/`Float` via Kernel conversion raising `InvalidOption` on bad input). Previously these keywords affected only help text.
 
 ### Added
 - `Ergane::DSL::Macros.dsl_value` — a class-level getter/setter accessor generator used by the DSL.
