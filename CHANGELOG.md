@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-25
+
+### Changed
+- **Unknown subcommands on a command group now raise `CommandNotFound`** (with a did-you-mean suggestion) and exit non-zero, instead of silently printing help. Scoped to command groups — leaf commands still treat unmatched tokens as positional arguments.
+- **Positional `argument` declarations are now enforced.** A missing `required:` argument raises `MissingArgument`; an absent optional argument takes its `default:`; values are coerced to the declared `type:` (`String` is identity, `Integer`/`Float` via Kernel conversion raising `InvalidOption` on bad input). Previously these keywords affected only help text.
+
+### Added
+- `Ergane::DSL::Macros.dsl_value` — a class-level getter/setter accessor generator used by the DSL.
+
+### Fixed
+- `OptionParser#order_recognized!` no longer drops the trailing tokens of a multi-token unknown option, and preserves argument order.
+- `String#blank?` is guarded against external definitions (e.g. ActiveSupport) instead of unconditionally overriding them.
+- Tool-rooted abstract intermediate commands are no longer stranded in the tool's registry when marked abstract.
+
+### Internal
+- Command registration unified into a single `register!` path (removed the duplicate `define_singleton_method`'d `inherited`/`inherited_command_name_set` hooks).
+- `HelpFormatter` renders through a shared `section` helper with a per-render color cycler (no module-level mutable state).
+- `Util::Debug` is no longer packaged in the gem (dev-only tooling).
+
 ## [0.1.0] - 2026-05-25
 
 First release of the rewritten framework. A near-complete rewrite of the
