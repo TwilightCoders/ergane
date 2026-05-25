@@ -32,10 +32,14 @@ class TrueClass
 end
 
 class String
-  # Override Object#blank? to also catch whitespace-only strings
+  # Catch whitespace-only strings, overriding the inherited Object#blank?.
+  # Guarded on String's OWN methods — not method_defined?, which would see the
+  # inherited Object#blank? and skip, leaving the whitespace-blind version. This
+  # still defines our version normally, but yields to any external String#blank?
+  # (e.g. ActiveSupport) rather than clobbering it.
   def blank?
     empty? || /\A[[:space:]]*\z/.match?(self)
-  end
+  end unless instance_methods(false).include?(:blank?)
 end
 
 class Numeric
