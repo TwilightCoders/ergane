@@ -20,11 +20,11 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 3.1'
 
   spec.metadata['rubygems_mfa_required'] = 'true'
-  spec.metadata['homepage_uri']      = spec.homepage
   spec.metadata['source_code_uri']   = spec.homepage
   spec.metadata['changelog_uri']     = "#{spec.homepage}/blob/main/CHANGELOG.md"
 
-  spec.files         = Dir['CHANGELOG.md', 'README.md', 'LICENSE', 'lib/**/*']
+  # Util::Debug is dev-only tooling — kept in the repo, not shipped.
+  spec.files         = Dir['CHANGELOG.md', 'README.md', 'LICENSE', 'lib/**/*'] - ['lib/ergane/util/debug.rb']
   spec.require_paths = ['lib']
 
   spec.add_dependency 'zeitwerk', '~> 2.6'
