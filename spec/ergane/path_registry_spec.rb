@@ -23,6 +23,11 @@ RSpec.describe Ergane::PathRegistry do
       expect(registry.abbreviate("#{File.expand_path('~')}/projects")).to eq("~/projects")
     end
 
+    it "expands ~-relative input before matching" do
+      registry.register("~", "~")
+      expect(registry.abbreviate("~/projects")).to eq("~/projects")
+    end
+
     it "only matches at a path boundary" do
       registry.register("/home/user", "~")
       expect(registry.abbreviate("/home/username/file")).to eq("/home/username/file")

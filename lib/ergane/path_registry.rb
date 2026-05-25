@@ -32,16 +32,19 @@ module Ergane
       self
     end
 
-    # Collapse the longest matching prefix in +path+ to its label,
-    # returning the path unchanged when nothing matches.
+    # Collapse the longest matching prefix in +path+ to its label, returning
+    # the path unchanged when nothing matches. The input is expanded before
+    # matching (mirroring how prefixes are stored on #register), so matching
+    # is consistent across platforms and "~"-relative input is accepted.
     def abbreviate(path)
-      str = path.to_s
+      original = path.to_s
+      expanded = File.expand_path(original)
       best = @substitutions
-        .select { |sub| str == sub.prefix || str.start_with?("#{sub.prefix}/") }
+        .select { |sub| expanded == sub.prefix || expanded.start_with?("#{sub.prefix}/") }
         .max_by { |sub| sub.prefix.length }
-      return str unless best
+      return original unless best
 
-      "#{best.label}#{str[best.prefix.length..]}"
+      "#{best.label}#{expanded[best.prefix.length..]}"
     end
   end
 end

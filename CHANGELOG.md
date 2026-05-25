@@ -12,6 +12,7 @@
 - `Ergane::DSL::Macros.dsl_value` — a class-level getter/setter accessor generator used by the DSL.
 
 ### Fixed
+- `PathRegistry#abbreviate` now expands its input before matching (mirroring `#register`), so abbreviation is consistent across platforms (notably Windows, where un-expanded inputs failed to match drive-qualified prefixes) and accepts `~`-relative input.
 - `OptionParser#order_recognized!` no longer drops the trailing tokens of a multi-token unknown option, and preserves argument order.
 - `String#blank?` is guarded against external definitions (e.g. ActiveSupport) instead of unconditionally overriding them.
 - Tool-rooted abstract intermediate commands are no longer stranded in the tool's registry when marked abstract.
