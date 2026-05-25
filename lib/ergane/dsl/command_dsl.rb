@@ -3,9 +3,9 @@
 module Ergane
   module DSL
     module CommandDSL
-      def description(text = nil)
-        text ? (@description = text) : (@description || "")
-      end
+      extend Macros
+
+      dsl_value :description, default: ""
 
       def aliases(*names)
         names.any? ? (@aliases = names.flatten.map(&:to_sym)) : (@aliases || [])

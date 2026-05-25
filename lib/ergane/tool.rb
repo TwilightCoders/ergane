@@ -5,6 +5,10 @@ module Ergane
     self.abstract_class = true
 
     class << self
+      extend DSL::Macros
+
+      dsl_value :version
+
       def command_class(klass = nil)
         if klass
           @command_class = klass
@@ -16,10 +20,6 @@ module Ergane
 
       def tool_name(name = nil)
         name ? (self.command_name = name) : command_name
-      end
-
-      def version(ver = nil)
-        ver ? (@version = ver) : @version
       end
 
       def start(argv = ARGV)
