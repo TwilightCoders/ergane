@@ -22,7 +22,17 @@ module Ergane
         return
       end
 
-      instance = command_class.new(remaining)
+      # MissingArgument from the constructor (a leaf was reached but the
+      # required positional wasn't supplied) → show that leaf's help instead
+      # of failing with a bare error. Matches the principle that "the user
+      # didn't tell us enough" is always answered with "here's what I need."
+      begin
+        instance = command_class.new(remaining)
+      rescue MissingArgument
+        $stdout.puts HelpFormatter.new(command_class, command_path: path).format
+        return
+      end
+
       instance.run(*instance.args)
     end
 
@@ -38,27 +48,65 @@ module Ergane
 
     def resolve(command_class, args, path = [])
       path << (command_class.command_name || command_class.name || "command").to_s
-      return [command_class, args, path] if args.empty?
 
-      token = args.first
-      return [command_class, args, path] if token.start_with?("-")
-
-      sub = find_subcommand(command_class, token.to_sym)
-      if sub
-        args.shift
-        resolve(sub, args, path)
-      elsif command_class.subcommands.any?
-        # The current command is a group, so an unmatched token is a bad
-        # subcommand — not a positional arg for a leaf command.
-        raise CommandNotFound.new(token, available: command_class.subcommands.keys)
-      else
-        [command_class, args, path]
+      # Arg-driven descent: the leading non-flag token (if any) names a
+      # subcommand. Promotion (find_subcommand below) lets a token match
+      # a grandchild under a `promote_subcommands!`-flagged parent.
+      unless args.empty? || args.first.start_with?("-")
+        token = args.first
+        sub = find_subcommand(command_class, token.to_sym)
+        if sub
+          args.shift
+          return resolve(sub, args, path)
+        elsif command_class.subcommands.any?
+          # Group with no match — bad token, not a positional for a leaf.
+          raise CommandNotFound.new(token, available: command_class.subcommands.keys)
+        end
       end
+
+      # `--help` short-circuits the default fallthrough — the user
+      # navigated to THIS level explicitly (root, if they typed only
+      # `--help`), and they want THIS level's help. Without this, a
+      # bare `claudepilot --help` would walk session→resume and show
+      # the leaf's help instead of the root's command listing.
+      return [command_class, args, path] if help_requested?(args)
+
+      # Default fallthrough: no token to consume, but a child claimed the
+      # default slot — keep walking. Recursive: a default may itself have
+      # a default. Same recursion handles both descents.
+      if (default_sub = command_class.default_subcommand)
+        return resolve(default_sub, args, path)
+      end
+
+      [command_class, args, path]
     end
 
     def find_subcommand(command_class, token)
-      command_class.subcommands[token] ||
-        command_class.subcommands.each_value.find { |cmd| cmd.terms.include?(token) }
+      direct = command_class.subcommands[token]
+      return direct if direct
+
+      via_term = command_class.subcommands.each_value.find { |c| c.terms.include?(token) }
+      return via_term if via_term
+
+      # Promotion: search one level into any direct child marked
+      # `promote_subcommands!`. Collect all hits across promoting children;
+      # zero → nil (caller handles), one → the grandchild, multiple →
+      # AmbiguousCommand (force the user to disambiguate).
+      promoted = command_class.subcommands.each_value
+                              .select { |c| c.respond_to?(:promote_subcommands?) && c.promote_subcommands? }
+                              .flat_map do |c|
+        c.subcommands.each_value.select { |gc| gc.terms.include?(token) }.map { |gc| [c, gc] }
+      end
+
+      return nil if promoted.empty?
+
+      if promoted.size > 1
+        raise AmbiguousCommand.new(token, candidates: promoted.map { |parent, gc|
+          "#{parent.command_name} #{gc.command_name}"
+        })
+      end
+
+      promoted.first.last
     end
   end
 end

@@ -48,4 +48,22 @@ module Ergane
   class MissingArgument < Error; end
   class InvalidOption < Error; end
   class AbstractCommand < Error; end
+
+  # Two sibling subcommands both called `default!` — registry is
+  # inconsistent. Raised at first lookup, not at registration, so command
+  # files can load in any order.
+  class AmbiguousDefault < Error; end
+
+  # A promoted token matches grandchildren under more than one
+  # `promote_subcommands!`-flagged parent — the user has to disambiguate
+  # (e.g. `claudepilot start` could mean `daemon start` or `session start`).
+  class AmbiguousCommand < Error
+    attr_reader :token, :candidates
+
+    def initialize(token, candidates:)
+      @token = token
+      @candidates = candidates # array of "parent subcommand" strings
+      super("Ambiguous command: '#{token}' could be: #{candidates.join(', ')}")
+    end
+  end
 end

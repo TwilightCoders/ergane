@@ -26,6 +26,30 @@ module Ergane
         @subcommands ||= {}
       end
 
+      # Mark THIS command as its parent's default subcommand. When the
+      # parent is invoked with no positional token, the runner falls
+      # through to here (recursively — the default itself may have a
+      # default). Multiple defaults under one parent raise
+      # AmbiguousDefault at lookup time.
+      def default!
+        @is_default = true
+      end
+
+      def default? = @is_default == true
+
+      # Parent-side: the child marked `default!`, or nil if none. Raises
+      # AmbiguousDefault if more than one child claims the slot — the
+      # error surfaces at first lookup (CLI startup), which is the right
+      # time to learn the registry is inconsistent.
+      def default_subcommand
+        defaults = subcommands.each_value.select(&:default?)
+        if defaults.size > 1
+          raise AmbiguousDefault, "#{command_name || self} has multiple defaults: " \
+                                  "#{defaults.map(&:command_name).join(', ')}"
+        end
+        defaults.first
+      end
+
       # Effective required-ness of the positional argument at +index+. An
       # explicit DSL `required:` (true/false) wins; otherwise it's derived from
       # the run method's matching positional parameter: a required parameter
