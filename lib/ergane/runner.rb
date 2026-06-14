@@ -64,12 +64,15 @@ module Ergane
         end
       end
 
-      # `--help` short-circuits the default fallthrough — the user
-      # navigated to THIS level explicitly (root, if they typed only
-      # `--help`), and they want THIS level's help. Without this, a
-      # bare `claudepilot --help` would walk session→resume and show
-      # the leaf's help instead of the root's command listing.
-      return [command_class, args, path] if help_requested?(args)
+      # `--help` and `--version` short-circuit the default fallthrough — the
+      # user navigated to THIS level explicitly (root, if they typed only the
+      # flag), and they want THIS level's help/version. Without this, a bare
+      # `tool --help`/`tool --version` would walk the default chain (e.g.
+      # session→resume) to a leaf: `--help` would show the leaf's help instead
+      # of the root command listing, and `--version` would reach a leaf with no
+      # version DSL, skip execute's version branch, and fall into OptionParser's
+      # built-in `--version` handler (which aborts "version unknown").
+      return [command_class, args, path] if help_requested?(args) || version_requested?(args)
 
       # Default fallthrough: no token to consume, but a child claimed the
       # default slot — keep walking. Recursive: a default may itself have
